@@ -22,6 +22,7 @@
   color: #777777 !important;
 }
 
+<<<<<<< HEAD
 .utxoTagDeposit {
   color: #999999;
   border: 1px solid #bbbbbb;
@@ -33,6 +34,27 @@
 .utxoTagJoinedAndCjout {
   border: 1px solid #27ae60;
   background-color: #c6eed7 !important;
+=======
+.NextButton {
+  width: 47%;
+  height: 3.15rem;
+  padding: 14px 20px 14px 20px;
+  border-radius: 5px;
+}
+
+.BackButton {
+  width: 47%;
+  height: 3.15rem;
+  padding: 14px 20px 14px 20px;
+  margin-right: 19px;
+  border-radius: 5px;
+}
+
+.utxoTagUnFreeze {
+  white-space: nowrap;
+  border: 1px solid #27ae60;
+  background-color: #c6eed7;
+>>>>>>> 162d89e (minor bug fixing)
   border-radius: 0.35rem;
   padding: 0rem 0.25rem;
 }

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, memo, useRef } from 'react'
 import * as rb from 'react-bootstrap'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
+import classNames from 'classnames'
 import { Table, Body, Row, Cell } from '@table-library/react-table-library/table'
 import { useTheme } from '@table-library/react-table-library/theme'
 import * as TableTypes from '@table-library/react-table-library/types/table'
@@ -15,13 +16,12 @@ import {
 } from '../../context/WalletContext'
 import { useSettings, Settings } from '../../context/SettingsContext'
 import Alert from '../Alert'
+import Balance from '../Balance'
 import { ConfirmModal } from '../Modal'
 import Sprite from '../Sprite'
 import { utxoTags } from '../jar_details/UtxoList'
 import mainStyles from '../MainWalletView.module.css'
 import styles from './ShowUtxos.module.css'
-import Balance from '../Balance'
-import classNames from 'classnames'
 
 type UtxoList = Array<Utxo>
 

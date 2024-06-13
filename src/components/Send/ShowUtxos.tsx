@@ -254,18 +254,19 @@ const ShowUtxos = ({ wallet, show, onHide, index }: ShowUtxosProps) => {
       const data = Object.entries(walletInfo.utxosByJar).find(([key]) => key === index)
       const utxos: any = data ? data[1] : []
 
-      const frozen = utxos
-        .filter((utxo: any) => utxo.frozen)
-        .map((utxo: any) => ({ ...utxo, id: utxo.utxo, checked: false }))
-      const unfrozen = utxos
-        .filter((utxo: any) => !utxo.frozen)
-        .map((utxo: any) => ({ ...utxo, id: utxo.utxo, checked: true }))
+      const newUtxos = utxos.map((utxo: any) => ({
+        ...utxo,
+        id: utxo.utxo,
+        tags: utxoTags(utxo, walletInfo, t),
+      }))
+      const frozen = newUtxos.filter((utxo: any) => utxo.frozen).map((utxo: any) => ({ ...utxo, checked: false }))
+      const unfrozen = newUtxos.filter((utxo: any) => !utxo.frozen).map((utxo: any) => ({ ...utxo, checked: true }))
 
       setFrozenUtxos(frozen)
       setUnFrozenUtxos(unfrozen)
 
       if (unfrozen.length === 0) {
-        setAlert({ variant: 'danger', message: t('show_utxos.alert_for_empty_utxos') })
+        setAlert({ variant: 'danger', message: t('showUtxos.alertForEmptyUtxos') })
       } else {
         setAlert(undefined)
       }
@@ -304,17 +305,25 @@ const ShowUtxos = ({ wallet, show, onHide, index }: ShowUtxosProps) => {
     const allUnfrozenUnchecked = unFrozenUtxos.every((utxo: Utxo) => !utxo.checked)
 
     if (timeLockedUtxo) {
-      setAlert({ variant: 'danger', message: `${t('show_utxos.alert_for_time_locked')} ${timeLockedUtxo.locktime}` })
+      setAlert({ variant: 'danger', message: `${t('showUtxos.alertForTimeLocked')} ${timeLockedUtxo.locktime}` })
     } else if (allUnfrozenUnchecked && frozenUtxosToUpdate.length === 0 && unFrozenUtxos.length > 0) {
-      setAlert({ variant: 'warning', message: t('show_utxos.alert_for_unfreeze_utxos'), dismissible: true })
+      setAlert({ variant: 'warning', message: t('showUtxos.alertForUnfreezeUtxos'), dismissible: true })
     } else if (unFrozenUtxos.length !== 0) {
       setAlert(undefined)
     }
   }, [frozenUtxos, unFrozenUtxos, t])
 
   // Handler to toggle UTXO selection
-  const handleToggle = useCallback((utxo: Utxo) => {
-    utxo.checked = !utxo.checked
+  const handleToggle = useCallback((utxoIndex: number, type: 'frozen' | 'unFrozen') => {
+    if (type === 'unFrozen') {
+      setUnFrozenUtxos((prevUtxos) =>
+        prevUtxos.map((utxo, i) => (i === utxoIndex ? { ...utxo, checked: !utxo.checked } : utxo)),
+      )
+    } else {
+      setFrozenUtxos((prevUtxos) =>
+        prevUtxos.map((utxo, i) => (i === utxoIndex ? { ...utxo, checked: !utxo.checked } : utxo)),
+      )
+    }
   }, [])
 
   // Handler for the "confirm" button click
@@ -348,14 +357,14 @@ const ShowUtxos = ({ wallet, show, onHide, index }: ShowUtxosProps) => {
       onConfirm={handleConfirm}
       disabled={alert?.dismissible || isLoading}
       isShown={show}
-      title={t('show_utxos.show_utxo_title')}
+      title={t('showUtxos.showUtxoTitle')}
       size="lg"
       showCloseButtonAndRemoveClassName={true}
       confirmVariant={'dark'}
     >
       {!isLoading ? (
         <>
-          <div className={classNames(styles.subTitle, 'm-3 mb-4 text-start')}>{t('show_utxos.show_utxo_subtitle')}</div>
+          <div className={classNames(styles.subTitle, 'm-3 mb-4 text-start')}>{t('showUtxos.showUtxoSubtitle')}</div>
           {alert && (
             <rb.Row>
               <Alert
@@ -368,11 +377,20 @@ const ShowUtxos = ({ wallet, show, onHide, index }: ShowUtxosProps) => {
           )}
           <UtxoListDisplay utxos={unFrozenUtxos} onToggle={handleToggle} settings={settings} showRadioAndBg={true} />
           {frozenUtxos.length > 0 && (
-            <Divider
-              isState={showFrozenUtxos}
-              setIsState={setShowFrozenUtxos}
-              className={`mt-4 ${showFrozenUtxos && 'mb-4'}`}
-            />
+            <rb.Row className={classNames('d-flex justify-content-center mt-4', { 'mb-4': showFrozenUtxos })}>
+              <rb.Col xs={12}>
+                <div className={mainStyles.jarsDividerContainer}>
+                  <hr className={mainStyles.dividerLine} />
+                  <button
+                    className={mainStyles.dividerButton}
+                    onClick={() => setShowFrozenUtxos((current) => !current)}
+                  >
+                    <Sprite symbol={showFrozenUtxos ? 'caret-up' : 'caret-down'} width="20" height="20" />
+                  </button>
+                  <hr className={mainStyles.dividerLine} />
+                </div>
+              </rb.Col>
+            </rb.Row>
           )}
           {showFrozenUtxos && (
             <UtxoListDisplay utxos={frozenUtxos} onToggle={handleToggle} settings={settings} showRadioAndBg={true} />

@@ -33,9 +33,9 @@ interface ShowUtxosProps {
 }
 
 interface UtxoRowProps {
-  utxo: UtxoType
+  utxo: Utxo
   utxoIndex: number
-  onToggle: (index: number, type: 'frozen' | 'unFrozen') => void
+  onToggle?: (index: number, isFrozen: boolean) => void
   isFrozen: boolean
   settings: Settings
   showRadioAndBg: boolean
@@ -45,7 +45,7 @@ interface UtxoRowProps {
 
 interface UtxoListDisplayProps {
   utxos: Array<Utxo>
-  onToggle?: (utxo: Utxo) => void
+  onToggle?: (index: number, isFrozen: boolean) => void
   settings: Settings
   showRadioAndBg?: boolean
 }
@@ -94,66 +94,21 @@ const allotClasses = (tag: string, isFrozen: boolean) => {
 }
 
 // Utxos row component
-const UtxoRow = memo(({ utxo, utxoIndex, onToggle, isFrozen, settings }: UtxoRowProps) => {
-  const address = formatAddress(utxo.address)
-  const conf = formatConfirmations(utxo.confirmations)
-  const value = satsToBtc(utxo.value)
-  const tag = utxo.tags[0].tag
-  const icon = utxoIcon(tag, isFrozen)
-  const rowAndTagClass = allotClasses(tag, isFrozen)
-  return (
-    <Row item={utxo} className={classNames(rowAndTagClass.row, 'cursor-pointer')}>
-      <Cell>
-        <input
-          id={`check-box-${isFrozen ? 'frozen' : 'unFrozen'}-${utxoIndex}`}
-          type="checkbox"
-          checked={utxo.checked}
-          onChange={() => onToggle(utxoIndex, isFrozen ? 'frozen' : 'unFrozen')}
-          className={classNames(isFrozen ? styles.squareFrozenToggleButton : styles.squareToggleButton, {
-            [styles.selected]: utxo.checked,
-          })}
-        />
-      </Cell>
-      <Cell>
-        <Sprite symbol={icon} width="23px" height="23px" />
-      </Cell>
-      <Cell>{address}</Cell>
-      <Cell>
-        <Sprite symbol={conf.symbol} width="28px" height="28px" className="mb-1" />
-        {conf.confirmations}
-      </Cell>
-      <Cell>
-        <Balance
-          valueString={value.toString()}
-          convertToUnit={settings.unit}
-          showBalance={true}
-          isColorChange={true}
-          frozen={isFrozen}
-          frozenSymbol={false}
-        />
-      </Cell>
-      <Cell>
-        <div className={classNames(rowAndTagClass.tag, 'd-inline-block')}>{tag}</div>
-      </Cell>
-    </Row>
-  )
-})
-
-//Table theme to manage view
-const TABLE_THEME = {
-  Table: `
-    font-size: 1rem;
-    --data-table-library_grid-template-columns: 3.5rem 2.5rem 12rem 2fr 3fr 10rem ;
-    @media only screen and (min-width: 768px) {
-      --data-table-library_grid-template-columns: 3.5rem 2.5rem 14rem 5fr 3fr 10rem ;
-    }
+const UtxoRow = memo(
+  ({ utxo, utxoIndex, onToggle, isFrozen, showRadioAndBg, settings, walletInfo, t }: UtxoRowProps) => {
+    const address = formatAddress(utxo.address)
+    const conf = formatConfirmations(utxo.confirmations)
+    const value = satsToBtc(utxo.value)
+    const tag = utxoTags(utxo, walletInfo, t)
+    const icon = utxoIcon(tag[0].tag, isFrozen)
+    const rowAndTagClass = allotClasses(tag[0].tag, isFrozen)
     return (
       <Row
         item={utxo}
         className={classNames(rowAndTagClass.row, 'cursor-pointer', {
           'bg-transparent': !showRadioAndBg,
         })}
-        onClick={() => onToggle && onToggle(utxo)}
+        onClick={() => onToggle && onToggle(utxoIndex, utxo.frozen)}
       >
         {showRadioAndBg && (
           <Cell>
@@ -162,7 +117,7 @@ const TABLE_THEME = {
               type="checkbox"
               checked={utxo.checked}
               onChange={() => {
-                onToggle && onToggle(utxo)
+                onToggle && onToggle(utxoIndex, isFrozen)
               }}
               className={classNames(isFrozen ? styles.squareFrozenToggleButton : styles.squareToggleButton, {
                 [styles.selected]: utxo.checked,
@@ -189,7 +144,7 @@ const TABLE_THEME = {
           />
         </Cell>
         <Cell>
-          <div className={classNames(rowAndTagClass.tag, 'd-inline-block')}>{tag.length ? tag[0].tag : ''}</div>
+          <div className={classNames(rowAndTagClass.tag, 'd-inline-block')}>{tag[0].tag}</div>
         </Cell>
       </Row>
     )
@@ -218,21 +173,59 @@ const UtxoListDisplay = ({ utxos, onToggle, settings, showRadioAndBg = true }: U
   const tableTheme = useTheme(TABLE_THEME)
 
   return (
-    <div className={classNames(styles.utxoListDisplayHeight, styles.customscrollbar, 'overflow-y-auto')}>
-      <Table data={{ nodes: utxos }} theme={tableTheme} layout={{ custom: true, horizontalScroll: true }}>
-        {(utxosList: TableTypes.TableProps<UtxoType>) => (
+    <div className={classNames(styles.utxoListDisplayHeight, 'overflow-y-auto')}>
+      <Table
+        className={'bg'}
+        data={{ nodes: utxos }}
+        theme={tableTheme}
+        layout={{ custom: true, horizontalScroll: true }}
+      >
+        {(utxosList: TableTypes.TableProps<Utxo>) => (
           <Body>
-            {utxosList.map((utxo: UtxoType, index: number) => {
-              return (
-                <Row key={index} item={utxo} onClick={() => onToggle(index, isFrozen ? 'frozen' : 'unFrozen')}>
-                  <UtxoRow utxo={utxo} utxoIndex={index} onToggle={onToggle} isFrozen={isFrozen} settings={settings} />
-                </Row>
-              )
-            })}
+            {walletInfo &&
+              utxosList.map((utxo: Utxo, index: number) => {
+                return (
+                  <UtxoRow
+                    key={index}
+                    utxo={utxo}
+                    utxoIndex={index}
+                    onToggle={onToggle}
+                    isFrozen={utxo.frozen}
+                    showRadioAndBg={showRadioAndBg}
+                    settings={settings}
+                    walletInfo={walletInfo}
+                    t={t}
+                  />
+                )
+              })}
           </Body>
         )}
       </Table>
     </div>
+  )
+}
+
+//Component to show the Divider line
+const Divider = ({ isState, setIsState, className }: DividerProps) => {
+  //Effect for getting back to it's original state when components unMounts
+  useEffect(() => {
+    return () => {
+      setIsState(false)
+    }
+  }, [setIsState])
+
+  return (
+    <rb.Row className={classNames('d-flex justify-content-center', className)}>
+      <rb.Col xs={12}>
+        <div className={mainStyles.jarsDividerContainer}>
+          <hr className={mainStyles.dividerLine} />
+          <button className={mainStyles.dividerButton} onClick={() => setIsState(!isState)}>
+            <Sprite symbol={isState ? 'caret-up' : 'caret-down'} width="20" height="20" />
+          </button>
+          <hr className={mainStyles.dividerLine} />
+        </div>
+      </rb.Col>
+    </rb.Row>
   )
 }
 
@@ -255,19 +248,18 @@ const ShowUtxos = ({ wallet, show, onHide, index }: ShowUtxosProps) => {
       const data = Object.entries(walletInfo.utxosByJar).find(([key]) => key === index)
       const utxos: any = data ? data[1] : []
 
-      const newUtxos = utxos.map((utxo: any) => ({
-        ...utxo,
-        id: utxo.utxo,
-        tags: utxoTags(utxo, walletInfo, t),
-      }))
-      const frozen = newUtxos.filter((utxo: any) => utxo.frozen).map((utxo: any) => ({ ...utxo, checked: false }))
-      const unfrozen = newUtxos.filter((utxo: any) => !utxo.frozen).map((utxo: any) => ({ ...utxo, checked: true }))
+      const frozen = utxos
+        .filter((utxo: any) => utxo.frozen)
+        .map((utxo: any) => ({ ...utxo, id: utxo.utxo, checked: false }))
+      const unfrozen = utxos
+        .filter((utxo: any) => !utxo.frozen)
+        .map((utxo: any) => ({ ...utxo, id: utxo.utxo, checked: true }))
 
       setFrozenUtxos(frozen)
       setUnFrozenUtxos(unfrozen)
 
       if (unfrozen.length === 0) {
-        setAlert({ variant: 'danger', message: t('showUtxos.alertForEmptyUtxos') })
+        setAlert({ variant: 'danger', message: t('show_utxos.alert_for_empty_utxos') })
       } else {
         setAlert(undefined)
       }
@@ -306,17 +298,17 @@ const ShowUtxos = ({ wallet, show, onHide, index }: ShowUtxosProps) => {
     const allUnfrozenUnchecked = unFrozenUtxos.every((utxo: Utxo) => !utxo.checked)
 
     if (timeLockedUtxo) {
-      setAlert({ variant: 'danger', message: `${t('showUtxos.alertForTimeLocked')} ${timeLockedUtxo.locktime}` })
+      setAlert({ variant: 'danger', message: `${t('show_utxos.alert_for_time_locked')} ${timeLockedUtxo.locktime}` })
     } else if (allUnfrozenUnchecked && frozenUtxosToUpdate.length === 0 && unFrozenUtxos.length > 0) {
-      setAlert({ variant: 'warning', message: t('showUtxos.alertForUnfreezeUtxos'), dismissible: true })
+      setAlert({ variant: 'warning', message: t('show_utxos.alert_for_unfreeze_utxos'), dismissible: true })
     } else if (unFrozenUtxos.length !== 0) {
       setAlert(undefined)
     }
   }, [frozenUtxos, unFrozenUtxos, t])
 
   // Handler to toggle UTXO selection
-  const handleToggle = useCallback((utxoIndex: number, type: 'frozen' | 'unFrozen') => {
-    if (type === 'unFrozen') {
+  const handleToggle = useCallback((utxoIndex: number, isFrozen: boolean) => {
+    if (!isFrozen) {
       setUnFrozenUtxos((prevUtxos) =>
         prevUtxos.map((utxo, i) => (i === utxoIndex ? { ...utxo, checked: !utxo.checked } : utxo)),
       )
@@ -358,14 +350,14 @@ const ShowUtxos = ({ wallet, show, onHide, index }: ShowUtxosProps) => {
       onConfirm={handleConfirm}
       disabled={alert?.dismissible || isLoading}
       isShown={show}
-      title={t('showUtxos.showUtxoTitle')}
+      title={t('show_utxos.show_utxo_title')}
       size="lg"
       showCloseButtonAndRemoveClassName={true}
       confirmVariant={'dark'}
     >
       {!isLoading ? (
         <>
-          <div className={classNames(styles.subTitle, 'm-3 mb-4 text-start')}>{t('showUtxos.showUtxoSubtitle')}</div>
+          <div className={classNames(styles.subTitle, 'm-3 mb-4 text-start')}>{t('show_utxos.show_utxo_subtitle')}</div>
           {alert && (
             <rb.Row>
               <Alert
@@ -378,20 +370,11 @@ const ShowUtxos = ({ wallet, show, onHide, index }: ShowUtxosProps) => {
           )}
           <UtxoListDisplay utxos={unFrozenUtxos} onToggle={handleToggle} settings={settings} showRadioAndBg={true} />
           {frozenUtxos.length > 0 && (
-            <rb.Row className={classNames('d-flex justify-content-center mt-4', { 'mb-4': showFrozenUtxos })}>
-              <rb.Col xs={12}>
-                <div className={mainStyles.jarsDividerContainer}>
-                  <hr className={mainStyles.dividerLine} />
-                  <button
-                    className={mainStyles.dividerButton}
-                    onClick={() => setShowFrozenUtxos((current) => !current)}
-                  >
-                    <Sprite symbol={showFrozenUtxos ? 'caret-up' : 'caret-down'} width="20" height="20" />
-                  </button>
-                  <hr className={mainStyles.dividerLine} />
-                </div>
-              </rb.Col>
-            </rb.Row>
+            <Divider
+              isState={showFrozenUtxos}
+              setIsState={setShowFrozenUtxos}
+              className={`mt-4 ${showFrozenUtxos && 'mb-4'}`}
+            />
           )}
           {showFrozenUtxos && (
             <UtxoListDisplay utxos={frozenUtxos} onToggle={handleToggle} settings={settings} showRadioAndBg={true} />

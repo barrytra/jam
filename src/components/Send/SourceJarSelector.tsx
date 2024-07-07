@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react'
 import { useField, useFormikContext } from 'formik'
 import * as rb from 'react-bootstrap'
-import { jarFillLevel, SelectableSendJar } from '../jars/Jar'
+import { jarFillLevel, SelectableJar } from '../jars/Jar'
 import { noop } from '../../utils'
 import { WalletInfo, CurrentWallet } from '../../context/WalletContext'
 import styles from './SourceJarSelector.module.css'
-import ShowUtxos from './ShowUtxos'
+import { ShowUtxos } from './ShowUtxos'
+import { useTranslation } from 'react-i18next'
 
 export type SourceJarSelectorProps = {
   name: string
@@ -32,6 +33,8 @@ export const SourceJarSelector = ({
   isLoading,
   disabled = false,
 }: SourceJarSelectorProps) => {
+  const { t } = useTranslation()
+
   const [field] = useField<JarIndex>(name)
   const form = useFormikContext<any>()
   const [showingUTXOS, setshowingUTXOS] = useState<showingUtxosProps>({
@@ -58,7 +61,6 @@ export const SourceJarSelector = ({
           <div className={styles.sourceJarsContainer}>
             {showingUTXOS.show && (
               <ShowUtxos
-                walletInfo={walletInfo}
                 wallet={wallet}
                 show={showingUTXOS.show}
                 onHide={() => {
@@ -73,8 +75,9 @@ export const SourceJarSelector = ({
             {jarBalances.map((it) => {
               return (
                 <div key={it.accountIndex}>
-                  <SelectableSendJar
-                    tooltipText={'Select UTXOs'}
+                  <SelectableJar
+                    tooltipText={t('show_utxos.select_utxos')}
+                    isOpen={true}
                     index={it.accountIndex}
                     balance={it.calculatedAvailableBalanceInSats}
                     frozenBalance={it.calculatedFrozenOrLockedBalanceInSats}
@@ -85,12 +88,19 @@ export const SourceJarSelector = ({
                       walletInfo.balanceSummary.calculatedTotalBalanceInSats,
                     )}
                     variant={it.accountIndex === field.value ? variant : undefined}
-                    onClick={(jarIndex) => {
+                    onClick={(jarIndex: number) => {
                       form.setFieldValue(field.name, jarIndex, true)
-                      setshowingUTXOS({
-                        index: jarIndex.toString(),
-                        show: true,
-                      })
+                      if (
+                        it.accountIndex === field.value &&
+                        !disabled &&
+                        !isLoading &&
+                        it.calculatedTotalBalanceInSats > 0
+                      ) {
+                        setshowingUTXOS({
+                          index: it.accountIndex.toString(),
+                          show: true,
+                        })
+                      }
                     }}
                   />
                 </div>

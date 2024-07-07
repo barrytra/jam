@@ -35,7 +35,7 @@ interface ShowUtxosProps {
 interface UtxoRowProps {
   utxo: Utxo
   utxoIndex: number
-  onToggle?: (index: number, isFrozen: boolean) => void
+  onToggle?: (utxo: Utxo) => void
   isFrozen: boolean
   settings: Settings
   showRadioAndBg: boolean
@@ -45,7 +45,7 @@ interface UtxoRowProps {
 
 interface UtxoListDisplayProps {
   utxos: Array<Utxo>
-  onToggle?: (index: number, isFrozen: boolean) => void
+  onToggle?: (utxo: Utxo) => void
   settings: Settings
   showRadioAndBg?: boolean
 }
@@ -100,10 +100,9 @@ const UtxoRow = memo(
     const conf = formatConfirmations(utxo.confirmations)
     const value = satsToBtc(utxo.value)
     const tag = utxoTags(utxo, walletInfo, t)
-    console.log(tag)
     let icon, rowAndTagClass
     if (tag.length === 0) {
-      icon = 'empty'
+      icon = 'Unmixed'
       rowAndTagClass = { row: styles.depositUtxo, tag: styles.utxoTagDeposit }
     } else {
       icon = utxoIcon(tag[0].tag, isFrozen)
@@ -115,7 +114,7 @@ const UtxoRow = memo(
         className={classNames(rowAndTagClass.row, 'cursor-pointer', {
           'bg-transparent': !showRadioAndBg,
         })}
-        onClick={() => onToggle && onToggle(utxoIndex, utxo.frozen)}
+        onClick={() => onToggle && onToggle(utxo)}
       >
         {showRadioAndBg && (
           <Cell>
@@ -124,7 +123,7 @@ const UtxoRow = memo(
               type="checkbox"
               checked={utxo.checked}
               onChange={() => {
-                onToggle && onToggle(utxoIndex, isFrozen)
+                onToggle && onToggle(utxo)
               }}
               className={classNames(isFrozen ? styles.squareFrozenToggleButton : styles.squareToggleButton, {
                 [styles.selected]: utxo.checked,
@@ -314,16 +313,8 @@ const ShowUtxos = ({ wallet, show, onHide, index }: ShowUtxosProps) => {
   }, [frozenUtxos, unFrozenUtxos, t])
 
   // Handler to toggle UTXO selection
-  const handleToggle = useCallback((utxoIndex: number, isFrozen: boolean) => {
-    if (!isFrozen) {
-      setUnFrozenUtxos((prevUtxos) =>
-        prevUtxos.map((utxo, i) => (i === utxoIndex ? { ...utxo, checked: !utxo.checked } : utxo)),
-      )
-    } else {
-      setFrozenUtxos((prevUtxos) =>
-        prevUtxos.map((utxo, i) => (i === utxoIndex ? { ...utxo, checked: !utxo.checked } : utxo)),
-      )
-    }
+  const handleToggle = useCallback((utxo: Utxo) => {
+    utxo.checked = !utxo.checked
   }, [])
 
   // Handler for the "confirm" button click

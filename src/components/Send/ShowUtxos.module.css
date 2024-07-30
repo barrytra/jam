@@ -9,7 +9,7 @@
 }
 
 .depositUtxo {
-  background-color: none !important;
+  background-color: var(--bs-body-bg) !important;
   color: var(--bs-modal-color) !important;
 }
 
@@ -51,14 +51,6 @@
   padding: 0rem 0.25rem;
 }
 
-.utxoListDisplay {
-  margin-left: -27px !important;
-}
-
-.modalBody {
-  padding: 40px !important;
-}
-
 .squareToggleButton {
   appearance: none;
   width: 22px;
@@ -84,4 +76,13 @@
 
 .utxoListDisplayHeight {
   max-height: 17.6rem;
+}
+
+.customHeaderClass {
+  background-color: var(--bs-gray-800) !important;
+  padding: var(--bs-modal-header-padding) !important;
+}
+
+.customTitleClass {
+  color: var(--bs-heading-color) !important;
 }
